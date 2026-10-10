@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:catalog_app/views/login_screen.dart'; // Login ekranının yolu
+import 'package:catalog_app/views/register_screen.dart'; // Kayıt ekranının yolu
 
 void main() {
   runApp(const MyApp());
