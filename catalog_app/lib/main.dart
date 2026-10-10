@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:catalog_app/views/home_screen.dart'; // HomeScreen dosyanızın bulunduğu yolu buraya yazın
+import 'package:catalog_app/views/login_screen.dart'; // Login ekranının yolu
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(), // Uygulama buradan başlar
     );
   }
 }
