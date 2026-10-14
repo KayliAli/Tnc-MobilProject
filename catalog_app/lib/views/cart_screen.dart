@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:catalog_app/models/products_model.dart';
 import 'package:catalog_app/services/cart_manager.dart'; // CartManager'ı import ettik
 
 class CartScreen extends StatefulWidget {
