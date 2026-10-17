@@ -3,9 +3,11 @@ import 'package:catalog_app/components/product_card.dart';
 import 'package:catalog_app/services/api_service.dart';
 import 'package:catalog_app/services/local_storage_service.dart';
 import 'package:catalog_app/models/products_model.dart';
+import 'package:catalog_app/services/cart_manager.dart';
 import 'package:catalog_app/views/login_screen.dart';
 import 'package:catalog_app/views/products_detail_screen.dart';
 import 'package:catalog_app/views/cart_screen.dart';
+import 'package:catalog_app/views/order_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,36 +70,72 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
+        title: const Text(
+          'Catalog',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              icon: const Icon(
-                Icons.shopping_bag_outlined,
-                color: Colors.black,
-                size: 28,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
-            ),
+          IconButton(
+            tooltip: 'My orders',
+            icon: const Icon(Icons.receipt_long_outlined, color: Colors.black),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OrderHistoryScreen(),
+                ),
+              );
+            },
           ),
           IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout, color: Colors.black),
+            tooltip: 'Cart',
+            icon: Badge(
+              isLabelVisible: CartManager.cartItems.isNotEmpty,
+              label: Text('${CartManager.cartItems.length}'),
+              child: const Icon(
+                Icons.shopping_bag_outlined,
+                color: Colors.black,
+                size: 26,
+              ),
+            ),
             onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+              if (mounted) setState(() {});
+            },
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Account options',
+            icon: const Icon(
+              Icons.account_circle_outlined,
+              color: Colors.black,
+            ),
+            onSelected: (action) async {
+              if (action != 'signOut') return;
               await LocalStorageService().clearData('is_logged_in');
-              if (!context.mounted) return;
+              if (!mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                 (route) => false,
               );
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'signOut',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sign out'),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -106,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const Text(
-                'Discover the World of Flutter',
+                'Discover the World of Gift Store',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),

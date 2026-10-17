@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:catalog_app/services/cart_manager.dart';
+import 'package:catalog_app/models/order_model.dart';
+import 'package:catalog_app/services/order_history_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -177,6 +179,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => _isSubmitting = true);
     try {
+      final now = DateTime.now();
+      final address = [
+        _addressController.text.trim(),
+        if (_apartmentController.text.trim().isNotEmpty)
+          _apartmentController.text.trim(),
+        '${_cityController.text.trim()}, ${_regionController.text.trim()} ${_postalCodeController.text.trim()}',
+        _country,
+      ].join('\n');
+      await OrderHistoryService().addOrder(
+        OrderRecord(
+          id: now.millisecondsSinceEpoch.toString(),
+          createdAt: now,
+          customerName: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          deliveryAddress: address,
+          total: CartManager.total,
+          items: CartManager.cartItems
+              .map(
+                (product) => OrderItem(
+                  name: product.name ?? 'Product',
+                  price: product.price ?? '\$0.00',
+                  productId: product.id,
+                ),
+              )
+              .toList(),
+        ),
+      );
       await CartManager.clearCart();
       if (!mounted) return;
       Navigator.pop(context, true);
