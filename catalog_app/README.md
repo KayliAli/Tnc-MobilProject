@@ -99,7 +99,7 @@ catalog_app/
 - `lib/services/cart_manager.dart`: Sepet içeriğini yükler, değiştirir, kaydeder ve toplamı hesaplar.
 - `lib/services/order_history_service.dart`: Siparişleri yerel depolamaya yazar ve geçmiş için okur.
 - `lib/models/order_model.dart`: Sipariş ve sipariş kalemlerinin serileştirilmesini sağlar.
-- `test/widget_test.dart`: Giriş ekranı, yerel kayıt, sepet, checkout ve sipariş geçmişi widget testlerini içerir.
+
 
 ## Veri Saklama ve Güvenlik
 
