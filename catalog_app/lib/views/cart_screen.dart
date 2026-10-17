@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:catalog_app/services/cart_manager.dart'; // CartManager'ı import ettik
+import 'package:catalog_app/components/product_image.dart';
+import 'package:catalog_app/services/cart_manager.dart';
+import 'package:catalog_app/views/checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key}); // Artık dışarıdan parametre almasına gerek yok
@@ -9,19 +11,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Fiyatları güvenli bir şekilde hesaplayan fonksiyon
-  double _calculateTotal() {
-    double total = 0.0;
-    for (var product in CartManager.cartItems) {
-      if (product.price != null && product.price!.isNotEmpty) {
-        String cleanPrice = product.price!.replaceAll(RegExp(r'[^0-9.]'), '');
-        double price = double.tryParse(cleanPrice) ?? 0.0;
-        total += price;
-      }
-    }
-    return total;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,18 +80,18 @@ class _CartScreenState extends State<CartScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                product.image ?? '',
+                              child: ProductImage(
+                                imageUrl: product.image ?? '',
                                 width: 70,
                                 height: 70,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
+                                fallback: Container(
                                   width: 70,
                                   height: 70,
                                   color: Colors.grey,
-                                  child: const Icon(Icons.broken_image,
-                                      color: Colors.white),
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -143,12 +132,14 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.redAccent),
-                              onPressed: () {
-                                setState(() {
-                                  CartManager.removeProduct(index); // CartManager üzerinden siliyoruz
-                                });
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.redAccent,
+                              ),
+                              onPressed: () async {
+                                await CartManager.removeProduct(index);
+                                if (!mounted) return;
+                                setState(() {});
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Item removed from cart'),
@@ -185,7 +176,7 @@ class _CartScreenState extends State<CartScreen> {
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           Text(
-                            '\$${_calculateTotal().toStringAsFixed(2)}',
+                            '\$${CartManager.total.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -206,16 +197,29 @@ class _CartScreenState extends State<CartScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
+                            final orderPlaced = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CheckoutScreen(),
+                              ),
+                            );
+                            if (!mounted || orderPlaced != true) return;
+                            setState(() {});
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Checkout successful!')),
+                                content: Text(
+                                  'Demo order placed. No payment was processed.',
+                                ),
+                              ),
                             );
                           },
                           child: const Text(
                             'Proceed to Checkout',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),

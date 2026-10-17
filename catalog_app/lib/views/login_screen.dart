@@ -14,14 +14,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final LocalStorageService _localStorageService = LocalStorageService();
-  
+
   bool _isLoading = false;
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -32,21 +32,36 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final isValid = await _localStorageService.authenticateUser(
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
 
-    await _localStorageService.saveData('user_email', email);
-    await _localStorageService.saveData('is_logged_in', 'true');
+      if (!isValid) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect email or password')),
+        );
+        return;
+      }
 
-    setState(() {
-      _isLoading = false;
-    });
+      await _localStorageService.saveData('user_email', email.toLowerCase());
+      await _localStorageService.saveData('is_logged_in', 'true');
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to sign in. Please try again.')),
+      );
+    }
   }
 
   @override
@@ -78,10 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Welcome Back',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -90,10 +102,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Email Field
                   TextField(
                     controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Email or Username',
                       prefixIcon: const Icon(Icons.email_outlined),
@@ -103,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Password Field
                   TextField(
                     controller: _passwordController,
@@ -117,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Sign In Button
                   SizedBox(
                     height: 50,
@@ -131,10 +144,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       onPressed: _isLoading ? null : _handleLogin,
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
                           : const Text(
                               'Sign In',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),
@@ -177,4 +200,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

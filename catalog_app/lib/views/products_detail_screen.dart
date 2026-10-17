@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:catalog_app/components/product_image.dart';
 import 'package:catalog_app/models/products_model.dart';
 import '../services/cart_manager.dart';
 
@@ -17,7 +18,10 @@ class ProductDetailsScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           product.name ?? 'Product Details',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -28,11 +32,13 @@ class ProductDetailsScreen extends StatelessWidget {
               height: 300,
               width: double.infinity,
               color: Colors.grey.shade100,
-              child: Image.network(
-                product.image ?? '',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Center(child: Icon(Icons.broken_image, size: 64, color: Colors.grey)),
+              child: ProductImage(
+                imageUrl: product.image ?? '',
+                width: double.infinity,
+                height: 300,
+                fallback: const Center(
+                  child: Icon(Icons.broken_image, size: 64, color: Colors.grey),
+                ),
               ),
             ),
             Padding(
@@ -40,7 +46,8 @@ class ProductDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (product.tagline != null && product.tagline!.isNotEmpty) ...[
+                  if (product.tagline != null &&
+                      product.tagline!.isNotEmpty) ...[
                     Text(
                       product.tagline!,
                       style: const TextStyle(
@@ -72,14 +79,13 @@ class ProductDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Text(
                     'Description',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Explore the detailed features and specifications of this amazing product. Designed to bring the best quality and performance.',
+                  Text(
+                    product.description?.trim().isNotEmpty == true
+                        ? product.description!.trim()
+                        : 'Explore the detailed features and specifications of this amazing product. Designed to bring the best quality and performance.',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.grey,
@@ -105,6 +111,7 @@ class ProductDetailsScreen extends StatelessWidget {
           ],
         ),
         child: SizedBox(
+          width: double.infinity,
           height: 50,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -114,10 +121,8 @@ class ProductDetailsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-
-              CartManager.addProduct(product);
-
+            onPressed: () async {
+              await CartManager.addProduct(product);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Added to cart successfully!')),
               );

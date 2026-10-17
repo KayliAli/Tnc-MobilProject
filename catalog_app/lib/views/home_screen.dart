@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:catalog_app/components/product_card.dart';
 import 'package:catalog_app/services/api_service.dart';
+import 'package:catalog_app/services/local_storage_service.dart';
 import 'package:catalog_app/models/products_model.dart';
+import 'package:catalog_app/views/login_screen.dart';
 import 'package:catalog_app/views/products_detail_screen.dart';
 import 'package:catalog_app/views/cart_screen.dart';
 
@@ -12,11 +15,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  ApiService apiService = ApiService();
-  List<Data> allproducts = [];
-  
-  // 1. Sepete eklenen ürünleri tutacağımız liste
-  List<Data> cartItems = []; 
+  final ApiService apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
+  List<Data> allProducts = [];
+  String _searchQuery = '';
 
   bool isLoading = false;
   String errorMessage = '';
@@ -28,17 +30,21 @@ class _HomeScreenState extends State<HomeScreen> {
         errorMessage = '';
       });
       final Products products = await apiService.fetchProducts();
+      if (!mounted) return;
       setState(() {
-        allproducts = products.data ?? [];
+        allProducts = products.data ?? [];
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         errorMessage = e.toString();
       });
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -46,6 +52,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -60,17 +72,31 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: IconButton(
-              icon: const Icon(Icons.shopping_bag_outlined, color: Colors.black, size: 28),
-              onPressed: () async {
-                // Sepet ekranına gidip döndüğümüzde sepeti güncelleyebilmek için await kullanabiliriz
-               Navigator.push(
+              icon: const Icon(
+                Icons.shopping_bag_outlined,
+                color: Colors.black,
+                size: 28,
+              ),
+              onPressed: () {
+                Navigator.push(
                   context,
-                  MaterialPageRoute(
-                  builder: (context) => const CartScreen(), // Parametre yok
-                  ),
-              );
+                  MaterialPageRoute(builder: (context) => const CartScreen()),
+                );
               },
             ),
+          ),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout, color: Colors.black),
+            onPressed: () async {
+              await LocalStorageService().clearData('is_logged_in');
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
           ),
         ],
       ),
@@ -89,15 +115,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 20),
-              
+
               // Arama Çubuğu
               Container(
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const TextField(
-                  decoration: InputDecoration(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) =>
+                      setState(() => _searchQuery = value.trim()),
+                  decoration: const InputDecoration(
                     hintText: 'Search...',
                     hintStyle: TextStyle(color: Colors.grey),
                     border: InputBorder.none,
@@ -117,8 +146,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 80,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox(height: 80, child: Center(child: Icon(Icons.image_not_supported))),
+                errorBuilder: (context, error, stackTrace) => const SizedBox(
+                  height: 80,
+                  child: Center(child: Icon(Icons.image_not_supported)),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -127,98 +158,72 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : errorMessage.isNotEmpty
-                        ? Center(child: Text('Hata: $errorMessage'))
-                        : GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Hata: $errorMessage',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: loadProducts,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _filteredProducts.isEmpty
+                    ? Center(
+                        child: Text(
+                          _searchQuery.isEmpty
+                              ? 'No products available'
+                              : 'No products found',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               crossAxisSpacing: 10,
                               mainAxisSpacing: 10,
                               childAspectRatio: 0.75,
                             ),
-                            itemCount: allproducts.length,
-                            itemBuilder: (context, index) {
-                              final findProduct = allproducts[index];
+                        itemCount: _filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _filteredProducts[index];
 
-                              return InkWell(
-                                onTap: () async {
-                                  // 3. Detay sayfasına gidildiğinde ürünü sepete ekleyebilmesi için callback veya async bekleyebiliriz
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ProductDetailsScreen(product: findProduct),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.3),
-                                        spreadRadius: 2,
-                                        blurRadius: 5,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(
-                                            findProduct.image ?? '',
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                const Center(child: Icon(Icons.broken_image)),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        findProduct.name ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        findProduct.tagline ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        findProduct.price ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          return ProductCard(
+                            product: product,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailsScreen(product: product),
                                 ),
                               );
                             },
-                          ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  List<Data> get _filteredProducts {
+    if (_searchQuery.isEmpty) return allProducts;
+    final query = _searchQuery.toLowerCase();
+    return allProducts.where((product) {
+      return (product.name ?? '').toLowerCase().contains(query) ||
+          (product.tagline ?? '').toLowerCase().contains(query) ||
+          (product.description ?? '').toLowerCase().contains(query);
+    }).toList();
   }
 }
