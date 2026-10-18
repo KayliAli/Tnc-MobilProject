@@ -4,6 +4,8 @@ Flutter ile geliştirilmiş; ürün kataloğu, kalıcı sepet, demo checkout ve 
 
 Uygulamanın özellikleri, proje mimarisi, klasör yapısı ve çalıştırma adımları için [uygulama README'sine](catalog_app/README.md) göz atın.
 
+
+
 ## Özellikler
 
 - Hesap oluşturma ve yerel oturum yönetimi
@@ -54,3 +56,10 @@ Uygulamanın özellikleri, proje mimarisi, klasör yapısı ve çalıştırma ad
 		<td><img src="docs/OrderHistory_Screen.jpeg" width="240" alt="Sipariş geçmişi ekranı"></td>
 	</tr>
 </table>
+
+---
+## Android APK
+
+[Mini Katalog Android APK dosyasını indir](releases/mini-katalog-android.apk) (sürüm 1.0.0, yaklaşık 48.4 MiB).
+
+Kurulum için APK'yı Android cihazınıza indirip açın. Android, dosyayı açtığınız tarayıcı veya dosya yöneticisi için bu kaynaktan uygulama yükleme izni isteyebilir. Bu APK Google Play üzerinden dağıtılmamaktadır.
